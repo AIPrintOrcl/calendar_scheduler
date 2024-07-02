@@ -16,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  DateTime selectedDay = DateTime.utc( /* 초기 선택한 날짜를 현재 날짜로 미리 셋팅 */
+  DateTime selectedDay = DateTime.utc(/* 초기 선택한 날짜를 현재 날짜로 미리 셋팅 */
     DateTime.now().year,
     DateTime.now().month,
     DateTime.now().day,
@@ -26,13 +26,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<DateTime, List<Schedule>> schedules = {
     DateTime.utc(2024, 7, 2): [
       Schedule(
-          id: 1,
-          startTime: 11,
-          endTime: 12,
-          content: '플러터 공부하기',
-          date: DateTime.utc(2024, 7, 2),
-          color: categoryColors[0],
-          createdAt: DateTime.now().toUtc(),
+        id: 1,
+        startTime: 11,
+        endTime: 12,
+        content: '플러터 공부하기',
+        date: DateTime.utc(2024, 7, 2),
+        color: categoryColors[0],
+        createdAt: DateTime.now().toUtc(),
       ),
       Schedule(
         id: 2,
@@ -49,13 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton( /* 스케쥴 추가 버튼 */
-        onPressed: (){
+      floatingActionButton: FloatingActionButton(/* 스케쥴 추가 버튼 */
+        onPressed: () {
           showModalBottomSheet(
-              context: context,
-              builder: (_) {
-                return ScheduleBottomSheet();
-              },
+            context: context,
+            builder: (_) {
+              return ScheduleBottomSheet();
+            },
           );
         },
         backgroundColor: primaryColor,
@@ -65,41 +65,54 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Calendar(
-              focusedDay: DateTime(2024, 7, 1),
-              onDaySelected: onDaySelected,
-              selectedDayPredicate: selectedDayPredicate,
-            ),
-            TodayBanner(
-              selectedDay : selectedDay,
-              taskCount: 0,
-            ),
-            Expanded(
+          child: Column(
+            children: [
+              Calendar(
+                focusedDay: DateTime(2024, 7, 1),
+                onDaySelected: onDaySelected,
+                selectedDayPredicate: selectedDayPredicate,
+              ),
+              TodayBanner(
+                selectedDay: selectedDay,
+                taskCount: 0,
+              ),
+              Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
-                  child: ListView(
-                    children: schedules.containsKey(selectedDay) /* 선택한 날짜가 null 값일 경우  */
-                      ? schedules[selectedDay]!
-                        .map(
-                          (e) => ScheduleCard(
-                            startTime: e.startTime,
-                            endTime: e.endTime,
-                            content: e.content,
-                            color: Color(
-                              int.parse(
-                                'FF${e.color}',
-                                radix: 16,
-                              ),
+                  padding: const EdgeInsets.only(
+                      left: 16.0, right: 16.0, top: 16.0),
+                  child: ListView.separated(/* ListView.builder - 보여줄 아이템을 미리 셋팅. */
+                    /// 해당 날짜의 스케쥴 갯수
+                    itemCount: schedules
+                        .containsKey(/* containsKey : 해당 키값이 존재 여부 확인*/
+                        selectedDay
+                    ) ? schedules[selectedDay]!.length : 0,
+                    /// 화면에 위젯이 보일 때마다 실행. 즉 스케쥴이 20개이면 4개는 세팅하고 나머지 16개는 스크롤 내리면 표시함.
+                    itemBuilder: (BuildContext context, int index) {
+                      /// 선택된 날짜에 해당되는 일정 리스트로 저장
+                      /// List<Schedule>
+                      final selectedSchedules = schedules[selectedDay]!;
+                      final scheduleModel = selectedSchedules[index];
+
+                      return ScheduleCard(
+                          startTime: scheduleModel.startTime,
+                          endTime: scheduleModel.endTime,
+                          content: scheduleModel.content,
+                          color: Color(
+                            int.parse(
+                              'FF${scheduleModel.color}',
+                              radix: 16,
                             ),
                           ),
-                    ).toList(),
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index){ /* separatorBuilder - 위젯 사이사이에 실행 */
+                      return SizedBox(height: 8.0);
+                    },
                   ),
-                )
-            ),
-          ],
-        )
+                ),
+              ),
+            ],
+          )
       ),
     );
   }
@@ -110,8 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  bool selectedDayPredicate (DateTime date){
-    if(selectedDay == null){
+  bool selectedDayPredicate(DateTime date) {
+    if (selectedDay == null) {
       return false;
     }
     return date.isAtSameMomentAs(selectedDay!);

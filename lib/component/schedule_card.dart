@@ -38,7 +38,7 @@ class ScheduleCard extends StatelessWidget {
                   Text(
                     /// 1 -> 01
                     /// 10 -> 10
-                    '${startTime.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
+                    '${startTime.toString().padLeft(2, '0')}:00',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: primaryColor,
@@ -46,7 +46,7 @@ class ScheduleCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${endTime.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
+                    '${endTime.toString().padLeft(2, '0')}:00',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: primaryColor,

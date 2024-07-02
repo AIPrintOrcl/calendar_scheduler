@@ -4,9 +4,13 @@ import 'package:calendar_scheduler/const/color.dart';
 class CustomTextField extends StatelessWidget {
   final String label;
   final bool expand;
+  final FormFieldSetter<String> onSaved;
+  final FormFieldValidator<String> validator;
 
   const CustomTextField({
     required this.label,
+    required this.onSaved,
+    required this.validator,
     this.expand = false,
     super.key
   });
@@ -40,6 +44,10 @@ class CustomTextField extends StatelessWidget {
         filled: true,
         fillColor: Colors.grey[100],
       ),
+      /// 저장 했을때 로직
+      onSaved: onSaved,
+      /// 검증 할 때 로직
+      validator: validator,
       /* 내용 텍스트 필드일 경우 줄 제한 없이 */
       maxLines: expand ? null : 1,
       minLines: expand ? null : 1,
