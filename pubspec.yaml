@@ -41,6 +41,7 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.0
   path_provider: ^2.0.0
   path: ^1.9.0
+  get_it: ^7.7.0
 
 # 버전이 맞지 않을 경우 dependency_overrides에 입력된 패키지의 버전과 동일하게 변경해준다.
 # dependency_overrides:

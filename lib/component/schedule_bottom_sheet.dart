@@ -1,7 +1,10 @@
 import 'package:calendar_scheduler/component/custom_text_field.dart';
 import 'package:calendar_scheduler/const/color.dart';
+import 'package:calendar_scheduler/database/drift.dart';
 import 'package:calendar_scheduler/model/schedule.dart';
+import 'package:drift/drift.dart' hide Column; /* flutter의 Column과 겹친다. drift의 Column을 숨긴다. */
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
 class ScheduleBottomSheet extends StatefulWidget {
   final DateTime selectedDay;
@@ -131,25 +134,26 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
   }
 
   /// 2. 새로운 스케쥴 추가
-  void onSavePressed() {
+  void onSavePressed() async {
     final isValid = formKey.currentState!.validate();
 
     if(isValid){
       formKey.currentState!.save();
 
-      // final schedule = Schedule(
-      //   id: 999,
-      //   startTime: startTime!,
-      //   endTime: endTime!,
-      //   content: content!,
-      //   date: widget.selectedDay,
-      //   color: selectedColor,
-      //   createdAt: DateTime.now().toUtc(),
-      // );
-      //
-      // Navigator.of(context).pop(
-      //     schedule,
-      // );
+      /// 앱 데이터베이스 이용.
+      final database = GetIt.I<AppDatabase>();
+
+      await database.createSchedule( /* await : 실제 데이터가 들어올 때까지 기다림. */
+        ScheduleTableCompanion(
+          startTime: Value(startTime!),
+          endTime: Value(endTime!),
+          content: Value(content!),
+          color: Value(selectedColor),
+          date: Value(widget.selectedDay),
+        ),
+      );
+
+      Navigator.of(context).pop();
     }
 
   }

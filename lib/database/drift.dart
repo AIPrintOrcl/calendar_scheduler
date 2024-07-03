@@ -20,11 +20,29 @@ part 'drift.g.dart'; /* g : 코드 제노레이션. drift.dart를 코드 제노�
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
-  ///쿼리 작성
+  ///쿼리
+  /* drift 실행을 통해 생성된 클래스
+      1. 테이블명+Data : 데이터를 가져올 때 사용. 실제로 DB에서 가져오는 타입 또는 데이터를 넣을 때의 타입
+      2. 테이블명+Companion : 데이터를 업데이트하거나  생성할 때 사용
+  * */
+  /// 선택한 일정의 스케쥴 데이터 가져오기
+  Future<List<ScheduleTableData>> getSchedules(
+      DateTime date, /* 선택한 일정 */
+  ) => (select(scheduleTable)..where((table) => table.date.equals(date))).get(); /* ..where() : where()에 대한 결과 값을 반환하는 것이 아닌 where을 실행한 대상(select(scheduleTable))을 반환할 것이다. */
+  // { 위 한줄 코드를 이지하게 풀기.
+  //   final selectQuery = select(scheduleTable); /* 전체 스케쥴 데이터 */
+  //   selectQuery.where((table) => table.date.equals(date)); /* 조건을 선택한 일정만 스케쥴 데이터를 필터 */
+  //
+  //   return selectQuery.get(); /* SQL 쿼리로 변경 */
+  //
+  // }
+
+  ///스케쥴 추가
+  Future<int> createSchedule(ScheduleTableCompanion data) => into(scheduleTable).insert(data); /* scheduleTable에 데이터를 넣겠다. */
 
 
   @override
-  int get schemaVersion => 1; /* database의 컬럼 등 변경할 경우 버전 관리 */
+  int get schemaVersion => 1; /* database의 컬럼 등 변경할 경우 버전 관리. 테이블을 변경하는 부분은 마이그레이션에 해당되는 부분 */
 }
 
 LazyDatabase _openConnection() {
