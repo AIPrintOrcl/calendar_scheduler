@@ -1,9 +1,13 @@
 import 'package:calendar_scheduler/component/custom_text_field.dart';
 import 'package:calendar_scheduler/const/color.dart';
+import 'package:calendar_scheduler/model/schedule.dart';
 import 'package:flutter/material.dart';
 
 class ScheduleBottomSheet extends StatefulWidget {
+  final DateTime selectedDay;
+
   const ScheduleBottomSheet({
+    required this.selectedDay,
     super.key
   });
 
@@ -12,6 +16,12 @@ class ScheduleBottomSheet extends StatefulWidget {
 }
 
 class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
+  final GlobalKey<FormState> formKey = GlobalKey(); /* 전체 프로젝트에서 단 하나의 자동 생성되는 키값. Form의 상태값을 입력되어있다. */
+
+  int? startTime;
+  int? endTime;
+  String? content;
+
   String selectedColor = categoryColors.first;
 
   @override
@@ -24,6 +34,7 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
         child: Padding(
           padding: EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0),
           child: Form(
+            key: formKey,
             child: Column(
               children: [
                 _Time(
@@ -47,7 +58,9 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
                   },
                 ),
                 SizedBox(height: 8.0,),
-                _SaveButton(),
+                _SaveButton(
+                  onPressed: onSavePressed,
+                ),
               ],
             ),
           ),
@@ -57,22 +70,87 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
   }
 
   void onStartTimeSaved(String? val){
+    if(val == null) return;
 
+    startTime = int.parse(val);
   }
   String? onStartTimeValidate(String? val){
+    if(val == null) {
+      return '값을 입력 해주세요.';
+    }
 
+    if(int.tryParse(val) == null){
+      return '숫자를 입력 해주세요.';
+    }
+
+    final time = int.parse(val);
+
+    if(time < 0 || time > 24) {
+      return '0~24 숫자를 입력 해주세요.';
+    }
+
+    return null;
   }
   void onEndTimeSaved(String? val){
+    if(val == null) return;
 
+    endTime = int.parse(val);
   }
   String? onEndTimeValidate(String? val){
+    if(val == null) {
+      return '값을 입력 해주세요.';
+    }
 
+    if(int.tryParse(val) == null){
+      return '숫자를 입력 해주세요.';
+    }
+
+    final time = int.parse(val);
+
+    if(time < 0 || time > 24) {
+      return '0~24 숫자를 입력 해주세요.';
+    }
+
+    return null;
   }
 
   void onContentSaved(String? val){
+    if(val == null) return;
 
+    content = val;
   }
   String? onContentValidate(String? val){
+    if(val == null) {
+      return '내용을 입력 해주세요.';
+    }
+    if(val.length < 3) {
+      return '3글자이상 입력해주세요.';
+    }
+
+    return null;
+  }
+
+  /// 2. 새로운 스케쥴 추가
+  void onSavePressed() {
+    final isValid = formKey.currentState!.validate();
+
+    if(isValid){
+      formKey.currentState!.save();
+
+      // final schedule = Schedule(
+      //   id: 999,
+      //   startTime: startTime!,
+      //   endTime: endTime!,
+      //   content: content!,
+      //   date: widget.selectedDay,
+      //   color: selectedColor,
+      //   createdAt: DateTime.now().toUtc(),
+      // );
+      //
+      // Navigator.of(context).pop(
+      //     schedule,
+      // );
+    }
 
   }
 }
@@ -186,7 +264,11 @@ class _Categories extends StatelessWidget {
 }
 
 class _SaveButton extends StatelessWidget {
-  const _SaveButton({super.key});
+  final VoidCallback onPressed;
+
+  const _SaveButton({
+    required this.onPressed,
+    super.key,});
 
   @override
   Widget build(BuildContext context) {
@@ -194,9 +276,7 @@ class _SaveButton extends StatelessWidget {
       children: [
         Expanded(
           child: ElevatedButton(
-            onPressed: (){
-
-            },
+            onPressed: onPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryColor,
               foregroundColor: Colors.white,
