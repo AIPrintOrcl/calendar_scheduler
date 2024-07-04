@@ -3,15 +3,17 @@ import 'package:calendar_scheduler/const/color.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
-  final bool expand;
   final FormFieldSetter<String> onSaved;
   final FormFieldValidator<String> validator;
+  final bool expand;
+  final String? initialValue;
 
   const CustomTextField({
     required this.label,
     required this.onSaved,
     required this.validator,
     this.expand = false,
+    this.initialValue,
     super.key
   });
 
@@ -53,6 +55,7 @@ class CustomTextField extends StatelessWidget {
       minLines: expand ? null : 1,
       expands: expand,
       cursorColor: Colors.grey,
+      initialValue: initialValue, /* 초기값 */
     );
   }
 }

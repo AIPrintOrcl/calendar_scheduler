@@ -8,9 +8,11 @@ import 'package:get_it/get_it.dart';
 
 class ScheduleBottomSheet extends StatefulWidget {
   final DateTime selectedDay;
+  final int? id;
 
   const ScheduleBottomSheet({
     required this.selectedDay,
+    this.id,
     super.key
   });
 
@@ -27,48 +29,89 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
 
   String selectedColor = categoryColors.first;
 
+  /// State가 처음 생성되었을 때 한번만 실행
+  @override
+  void initState() {
+    super.initState();
+
+    initCategory();
+  }
+
+  /// State가 처음 생성되었을 때 최초로 한번만 id가 null이 아닐 때 선택한 스케쥴의 카테고리 정보를 selectedColor에 입력한다.
+  initCategory() async {
+    if(widget.id != null){
+      final resp = await GetIt.I<AppDatabase>().getScheduleById(widget.id!);
+
+      setState(() {
+        selectedColor = resp.color;
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      height: 600,
-      child: SafeArea(
-        bottom: true,
-        child: Padding(
-          padding: EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0),
-          child: Form(
-            key: formKey,
-            child: Column(
-              children: [
-                _Time(
-                  onStartSaved: onStartTimeSaved,
-                  onStartValidate: onStartTimeValidate,
-                  onEndSaved: onEndTimeSaved,
-                  onEndValidate: onEndTimeValidate,
+    return FutureBuilder(
+      /// 스케쥴 선택X 추가 버튼 => 스케쥴 추가. 스케쥴 선택O 추가 버튼 => 스케쥴 수정
+      future: widget.id == null
+        ? null
+        : GetIt.I<AppDatabase>().getScheduleById(widget.id!), /* id가 null 일 경우 스케쥴 추가 기능. id가 null이 아닐 경우 스케쥴 수정 기능. */
+      builder: (context, snapshot) {
+        /// 데이터가 null 값이 아닐 경우 + 딜레이로 인해 데이터가 들어오지 않는 상태일 경우 + 데이터가 없는 경우(최초) => 로딩 중 표시
+        if(widget.id != null &&
+            snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        /// future: 으로 통한 스케쥴 정보 입력
+        final data = snapshot.data;
+
+        return Container(
+          color: Colors.white,
+          height: 600,
+          child: SafeArea(
+            bottom: true,
+            child: Padding(
+              padding: EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    _Time(
+                      onStartSaved: onStartTimeSaved,
+                      onStartValidate: onStartTimeValidate,
+                      onEndSaved: onEndTimeSaved,
+                      onEndValidate: onEndTimeValidate,
+                      startTimeInitValue: data?.startTime.toString(),
+                      endTimeInitValue: data?.endTime.toString(),
+                    ),
+                    SizedBox(height: 8.0),
+                    _Content(
+                      onSaved: onContentSaved,
+                      onValidate: onContentValidate,
+                      contentTimeInitValue: data?.content,
+                    ),
+                    SizedBox(height: 8.0),
+                    _Categories(
+                      selectedColor: selectedColor,
+                      onTap: (String color) {
+                        setState(() {
+                          selectedColor = color;
+                        });
+                      },
+                    ),
+                    SizedBox(height: 8.0,),
+                    _SaveButton(
+                      onPressed: onSavePressed,
+                    ),
+                  ],
                 ),
-                SizedBox(height: 8.0),
-                _Content(
-                  onSaved: onContentSaved,
-                  onValidate: onContentValidate,
-                ),
-                SizedBox(height: 8.0),
-                _Categories(
-                  selectedColor: selectedColor,
-                  onTap: (String color) {
-                    setState(() {
-                      selectedColor = color;
-                    });
-                  },
-                ),
-                SizedBox(height: 8.0,),
-                _SaveButton(
-                  onPressed: onSavePressed,
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }
     );
   }
 
@@ -164,12 +207,16 @@ class _Time extends StatelessWidget {
   final FormFieldSetter<String> onEndSaved;
   final FormFieldValidator<String> onStartValidate;
   final FormFieldValidator<String> onEndValidate;
+  final String? startTimeInitValue;
+  final String? endTimeInitValue;
 
   const _Time({
     required this.onStartSaved,
     required this.onEndSaved,
     required this.onStartValidate,
     required this.onEndValidate,
+    this.startTimeInitValue,
+    this.endTimeInitValue,
     super.key,});
 
   @override
@@ -182,6 +229,7 @@ class _Time extends StatelessWidget {
             label: '시작 시간',
             onSaved: onStartSaved,
             validator: onStartValidate,
+            initialValue: startTimeInitValue,
           ),
         ), /* 시작시간 입력 */
         SizedBox(width: 16.0),
@@ -190,6 +238,7 @@ class _Time extends StatelessWidget {
             label: '마감 시간',
             onSaved: onEndSaved,
             validator: onEndValidate,
+            initialValue: endTimeInitValue,
           ),
         ), /* 끝난시간 입력*/
       ],
@@ -200,10 +249,12 @@ class _Time extends StatelessWidget {
 class _Content extends StatelessWidget {
   final FormFieldSetter<String> onSaved;
   final FormFieldValidator<String> onValidate;
+  final String? contentInitValue;
 
   const _Content({
     required this.onSaved,
     required this.onValidate,
+    this.contentInitValue,
     super.key,});
 
   @override
@@ -214,6 +265,7 @@ class _Content extends StatelessWidget {
         expand: true,
         onSaved: onSaved,
         validator: onValidate,
+        initialValue: contentInitValue,
       ),
     );
   }
