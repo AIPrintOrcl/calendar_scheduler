@@ -90,7 +90,7 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
                     _Content(
                       onSaved: onContentSaved,
                       onValidate: onContentValidate,
-                      contentTimeInitValue: data?.content,
+                      contentInitValue: data?.content,
                     ),
                     SizedBox(height: 8.0),
                     _Categories(
