@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:calendar_scheduler/model/category.dart';
+import 'package:calendar_scheduler/model/schedule_with_category.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p; /* path.dart 안에 있는 모든 기능들을 p라는 변수에 넣어 불러온다. */
 
@@ -14,9 +16,10 @@ part 'drift.g.dart'; /* g : 코드 제노레이션. drift.dart를 코드 제노�
  터미널에서 dart run build_runner build 입력*/
 
 /// 휴대폰마다 앱을 설치할 때 필요한 Database 파일을 저장할 공간(폴더)를 생성하고 database를 생성한다.
-@DriftDatabase( /* 생성할 모든 테이블을 입력한다..*/
-  tables: [ScheduleTable]
-)
+@DriftDatabase(tables: [ /* 생성할 모든 테이블을 입력한다..*/
+  ScheduleTable,
+  CategoryTable,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -30,24 +33,54 @@ class AppDatabase extends _$AppDatabase {
   //     DateTime date, /* 선택한 일정 */
   // ) => (select(scheduleTable)..where((table) => table.date.equals(date))).get(); /* ..where() : where()에 대한 결과 값을 반환하는 것이 아닌 where을 실행한 대상(select(scheduleTable))을 반환할 것이다. */
 
-  Stream<List<ScheduleTableData>> streamSchedules(
+  Stream<List<ScheduleWithCategory>> streamSchedules(
       DateTime date, /* 선택한 일정 */
-  ) =>
-      (select(scheduleTable)
-    ..where( /* 필터 */
-          (table) => table.date.equals(date),
-    )
-        ..orderBy([ /* 정렬 */
-            (table) => OrderingTerm( /* 1번째 기준 우선순위 */
-              expression: table.startTime,
-              mode: OrderingMode.asc,
+  ) {
+    final query = select(scheduleTable).join(
+        [
+          innerJoin(
+            categoryTable,
+            categoryTable.id.equalsExp( /* equalsExp : drift의 equals() */
+              scheduleTable.colorId,
             ),
-              (table) => OrderingTerm( /* 2번째 기준 우선순위 */
-              expression: table.endTime,
-              mode: OrderingMode.asc,
           ),
-        ]))
-      .watch(); /* ..where() : where()에 대한 결과 값을 반환하는 것이 아닌 where을 실행한 대상(select(scheduleTable))을 반환할 것이다. */
+        ])..where(scheduleTable.date.equals(date),
+    )
+    ..orderBy([ /* 정렬 */
+          OrderingTerm( /* 1번째 기준 우선순위 */
+            expression: scheduleTable.startTime,
+            mode: OrderingMode.asc,
+          ),
+          OrderingTerm( /* 2번째 기준 우선순위 */
+            expression: scheduleTable.endTime,
+            mode: OrderingMode.asc,
+          ),
+    ]);
+
+    /// join으로 연결된 결과를 갖고서 각각의 row를 다시 맵핑시킨다.
+    return query.map((row) {
+      final schedule = row.readTable(scheduleTable);
+      final category = row.readTable(categoryTable);
+      
+      return ScheduleWithCategory(category: category, schedule: schedule);
+    }).watch();
+  }
+  //   => (select(scheduleTable)
+  //     ..where( /* 필터 */
+  //           (table) => table.date.equals(date),
+  //     )
+  //     ..orderBy([ /* 정렬 */
+  //           (table) => OrderingTerm( /* 1번째 기준 우선순위 */
+  //         expression: table.startTime,
+  //         mode: OrderingMode.asc,
+  //       ),
+  //           (table) => OrderingTerm( /* 2번째 기준 우선순위 */
+  //         expression: table.endTime,
+  //         mode: OrderingMode.asc,
+  //       ),
+  //     ]))
+  //       .watch(); /* ..where() : where()에 대한 결과 값을 반환하는 것이 아닌 where을 실행한 대상(select(scheduleTable))을 반환할 것이다. */
+
 
   // { 위 한줄 코드를 이지하게 풀기.
   //   final selectQuery = select(scheduleTable); /* 전체 스케쥴 데이터 */
@@ -70,9 +103,31 @@ class AppDatabase extends _$AppDatabase {
       (update(scheduleTable)..where((table) => table.id.equals(id))).write(data);
 
   /// 하나의 스케쥴 id 검색 쿼리. 수정할 스케쥴 정보 가져오기 위함.
-  Future<ScheduleTableData> getScheduleById(int id) =>
-      (select(scheduleTable)..where((table) => table.id.equals(id))).getSingle();
+  Future<ScheduleWithCategory> getScheduleById(int id) {
+    final query = select(scheduleTable).join(
+        [
+          innerJoin(
+            categoryTable,
+            categoryTable.id.equalsExp( /* equalsExp : drift의 equals() */
+              scheduleTable.colorId,
+            ),
+          ),
+        ])..where(scheduleTable.id.equals(id));
 
+    /// join으로 연결된 결과를 갖고서 각각의 row를 다시 맵핑시킨다.
+    return query.map((row) {
+      final schedule = row.readTable(scheduleTable);
+      final category = row.readTable(categoryTable);
+
+      return ScheduleWithCategory(category: category, schedule: schedule);
+    }).getSingle();
+  }
+
+  /// 모든 카테고리 검색
+  Future<List<CategoryTableData>> getCategories() => select(categoryTable).get();
+
+  /// 카테고리 생성
+  Future<int> createCategory(CategoryTableCompanion data) => into(categoryTable).insert(data);
 
   /*-----쿼리 끝------*/
   @override

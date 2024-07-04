@@ -21,6 +21,19 @@ void main() async {
 
   /// 데이터 사용 - GetIt.I<AppDatabase>();
 
+  /// 데이터베이스에 입력된 카테고리 색상 검색
+  final colors = await database.getCategories();
+
+  if(colors.isEmpty) { /* 만약 카테고리가 없을 경우 생성해준다. */
+    for(String hexcode in categoryColors){
+      await database.createCategory(
+        CategoryTableCompanion(
+          color: Value(hexcode),
+        )
+      );
+    }
+  }
+
   // final resp = await database.getSchedules();
   // print(resp);
 

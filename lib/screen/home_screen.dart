@@ -6,6 +6,7 @@ import 'package:calendar_scheduler/component/today_banner.dart';
 import 'package:calendar_scheduler/const/color.dart';
 import 'package:calendar_scheduler/database/drift.dart';
 import 'package:calendar_scheduler/model/schedule.dart';
+import 'package:calendar_scheduler/model/schedule_with_category.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -83,9 +84,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 onDaySelected: onDaySelected,
                 selectedDayPredicate: selectedDayPredicate,
               ),
-              TodayBanner(
-                selectedDay: selectedDay,
-                taskCount: 0,
+              StreamBuilder(
+                stream: GetIt.I<AppDatabase>().streamSchedules(
+                  selectedDay,
+                ),
+                builder: (context, snapshot) {
+                  return TodayBanner(
+                    selectedDay: selectedDay,
+                    taskCount: snapshot.data!.length != null ? snapshot.data!.length : 0,
+                  );
+                }
               ),
               Expanded(
                 child: Padding(
@@ -93,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       left: 16.0, right: 16.0, top: 16.0),
                   /// drift을 통해 활용하기 위한 FutureBuilder
                   /// StreamBuilder 이용 : 데이터를 지속적으로 받아와서 업데이트가 생겼을 때 다시 데이터를 자동으로 받을 수 있다.
-                  child: StreamBuilder<List<ScheduleTableData>>(
+                  child: StreamBuilder<List<ScheduleWithCategory>>(
                     stream: GetIt.I<AppDatabase>().streamSchedules(
                         selectedDay,
                     ),
@@ -127,7 +135,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           // final selectedSchedules = schedules[selectedDay]!;
                           // final scheduleModel = selectedSchedules[index];
 
-                          final schedule = schedules[index];
+                          final scheduleWithCategory = schedules[index];
+                          final schedule = scheduleWithCategory.schedule;
+                          final category = scheduleWithCategory.category;
 
                           return Dismissible( /* Dismissible : 사라지게 할 수 있다. */
                             key: ObjectKey(schedule.id),
@@ -162,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   content: schedule.content,
                                   color: Color(
                                     int.parse(
-                                      'FF${schedule.color}',
+                                      'FF${category.color}',
                                       radix: 16,
                                     ),
                                   ),

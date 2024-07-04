@@ -27,7 +27,7 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
   int? endTime;
   String? content;
 
-  String selectedColor = categoryColors.first;
+  int? selectedColorId;
 
   /// State가 처음 생성되었을 때 한번만 실행
   @override
@@ -43,12 +43,22 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
       final resp = await GetIt.I<AppDatabase>().getScheduleById(widget.id!);
 
       setState(() {
-        selectedColor = resp.color;
+        selectedColorId = resp.category.id;
+      });
+    }else{ /* 스케쥴 추가 시 첫 번째로 카테고리 지정한다. */
+      final resp = await GetIt.I<AppDatabase>().getCategories();
+
+      setState(() {
+        selectedColorId = resp.first.id;
       });
     }
   }
   @override
   Widget build(BuildContext context) {
+    if(selectedColorId == null) { /* selectedColorId가 null일 경우 예외처리 */
+      return Container();
+    }
+
     return FutureBuilder(
       /// 스케쥴 선택X 추가 버튼 => 스케쥴 추가. 스케쥴 선택O 추가 버튼 => 스케쥴 수정
       future: widget.id == null
@@ -65,7 +75,7 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
         }
 
         /// future: 으로 통한 스케쥴 정보 입력
-        final data = snapshot.data;
+        final data = snapshot.data?.schedule;
 
         return Container(
           color: Colors.white,
@@ -94,10 +104,10 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
                     ),
                     SizedBox(height: 8.0),
                     _Categories(
-                      selectedColor: selectedColor,
-                      onTap: (String color) {
+                      selectedColor: selectedColorId!,
+                      onTap: (int color) {
                         setState(() {
-                          selectedColor = color;
+                          selectedColorId = color;
                         });
                       },
                     ),
@@ -183,18 +193,32 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
     if(isValid){
       formKey.currentState!.save();
 
-      /// 앱 데이터베이스 이용.
+      /// 생성된 앱 데이터베이스 이용.
       final database = GetIt.I<AppDatabase>();
 
-      await database.createSchedule( /* await : 실제 데이터가 들어올 때까지 기다림. */
-        ScheduleTableCompanion(
-          startTime: Value(startTime!),
-          endTime: Value(endTime!),
-          content: Value(content!),
-          color: Value(selectedColor),
-          date: Value(widget.selectedDay),
-        ),
-      );
+      if(widget.id == null) {
+        await database.createSchedule( /* 추가 버튼 클릭하여 시트를 오픈 => id=null */
+          ScheduleTableCompanion(
+            startTime: Value(startTime!),
+            endTime: Value(endTime!),
+            content: Value(content!),
+            colorId: Value(selectedColorId!),
+            date: Value(widget.selectedDay),
+          ),
+        );
+      } else if(widget.id != null) {
+        await database.updateScheduleById( /* 스케쥴 클릭하여 시트를 오픈 => id!=null */
+          widget.id!,
+          ScheduleTableCompanion(
+            startTime: Value(startTime!),
+            endTime: Value(endTime!),
+            content: Value(content!),
+            colorId: Value(selectedColorId!),
+            date: Value(widget.selectedDay),
+          ),
+        );
+      }
+
 
       Navigator.of(context).pop();
     }
@@ -272,10 +296,10 @@ class _Content extends StatelessWidget {
 }
 
 /* onTap을 통해 color 값 가져오기 위한 패턴*/
-typedef OnColorSelected = void Function(String color);
+typedef OnColorSelected = void Function(int color);
 
 class _Categories extends StatelessWidget {
-  final String selectedColor;
+  final int selectedColor;
   final OnColorSelected onTap;
 
   const _Categories({
@@ -286,35 +310,44 @@ class _Categories extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: categoryColors.map(
-            (e) => Padding(
-          padding: EdgeInsets.only(right: 8.0),
-          child: GestureDetector(
-            onTap: () {
-              onTap(e);
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Color(
-                  int.parse( /* 값을 16진수 integer로 변환 => 0xFFF44336 */
-                    'FF$e', /* FF* 색의 투명도 나타냄. FF는 투명도0 */
-                    radix: 16,
+    return FutureBuilder(
+      future: GetIt.I<AppDatabase>().getCategories(),
+      builder: (context, snapshot) {
+        if(!snapshot.hasData){
+          return Container();
+        }
+
+        return Row(
+          children: snapshot.data!.map(
+                (e) => Padding(
+              padding: EdgeInsets.only(right: 8.0),
+              child: GestureDetector(
+                onTap: () {
+                  onTap(e.id);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(
+                      int.parse( /* 값을 16진수 integer로 변환 => 0xFFF44336 */
+                        'FF${e.color}', /* FF* 색의 투명도 나타냄. FF는 투명도0 */
+                        radix: 16,
+                      ),
+                    ),
+                    border: e.id == selectedColor
+                        ? Border.all(
+                      color: Colors.black,
+                      width: 4.0,
+                    ) : null,
+                    shape: BoxShape.circle,
                   ),
+                  width: 32.0,
+                  height: 32.0,
                 ),
-                border: e == selectedColor
-                    ? Border.all(
-                  color: Colors.black,
-                  width: 4.0,
-                ) : null,
-                shape: BoxShape.circle,
               ),
-              width: 32.0,
-              height: 32.0,
             ),
-          ),
-        ),
-      ).toList(),
+          ).toList(),
+        );
+      }
     );
   }
 }
